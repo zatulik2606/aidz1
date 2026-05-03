@@ -1,0 +1,14 @@
+[project]
+name = "aidz1-bot"
+version = "0.1.0"
+description = "Telegram bot MVP with LLM integration"
+requires-python = ">=3.12"
+dependencies = [
+    "aiogram>=3.7.0",
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
