@@ -1,0 +1,41 @@
+---
+description: Coding conventions for the project. Reflects the technical vision from docs/vision.md.
+alwaysApply: true
+---
+
+# Coding Conventions
+
+Full technical vision: `docs/vision.md`.
+
+## Principles
+
+- **KISS**: implement only what is needed to validate the idea. No over-engineering.
+- **Functional style**: no classes, no OOP. Use plain functions and modules.
+- **Async everywhere**: all I/O (Telegram, LLM) must be `async/await`.
+
+## Module Responsibilities
+
+Each module has one responsibility. Do not mix concerns across modules:
+
+- `src/main.py` — wires components, starts polling only.
+- `src/config.py` — loads and validates env. Fail fast if required vars are missing.
+- `src/handlers.py` — Telegram message handlers only.
+- `src/llm.py` — one public async function to call the LLM. No Telegram logic here.
+- `src/dialog_store.py` — in-memory `dict[int, list[dict]]` keyed by `chat_id`. No I/O.
+
+## Configuration
+
+- All config comes from `.env`. No hardcoded secrets or values.
+- Required vars: `TELEGRAM_BOT_TOKEN`, `LLM_PROVIDER`, `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`, `SYSTEM_PROMPT`.
+- `SYSTEM_PROMPT` is mandatory — the app must not start without it.
+
+## Logging
+
+- Use stdlib `logging` only. No third-party logging libs.
+- Log to `stdout`. Format: `time | level | module | message`.
+- Never log secrets or full user message content.
+
+## Error Handling
+
+- On LLM/network error: send a short user-facing message, log the technical reason at `ERROR` level.
+’’
