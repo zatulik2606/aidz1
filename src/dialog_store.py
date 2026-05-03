@@ -15,3 +15,7 @@ def add_assistant_message(chat_id: int, text: str) -> None:
     chat_histories.setdefault(chat_id, []).append(
         {"role": "assistant", "content": text}
     )
+
+
+def clear_history(chat_id: int) -> None:
+    chat_histories.pop(chat_id, None)

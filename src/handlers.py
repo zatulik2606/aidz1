@@ -1,11 +1,12 @@
 from aiogram import F, Router
-from aiogram.filters import CommandStart
+from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
 
 from src.config import Config
 from src.dialog_store import (
     add_assistant_message,
     add_user_message,
+    clear_history,
     get_history,
 )
 from src.llm import generate_reply
@@ -17,6 +18,11 @@ def build_router(config: Config) -> Router:
     @router.message(CommandStart())
     async def handle_start(message: Message) -> None:
         await message.answer("Привет! Я запущен и готов к работе.")
+
+    @router.message(Command("reset"))
+    async def handle_reset(message: Message) -> None:
+        clear_history(message.chat.id)
+        await message.answer("Контекст диалога очищен.")
 
     @router.message(F.text)
     async def handle_text_message(message: Message) -> None:
