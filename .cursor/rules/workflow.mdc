@@ -1,0 +1,26 @@
+---
+description: Development workflow for building the bot step by step according to docs/tasklist.md and docs/vision.md.
+alwaysApply: true
+---
+
+# Development Workflow
+
+Reference documents: `docs/vision.md` (technical vision), `docs/tasklist.md` (iteration plan).
+
+## Iteration Loop
+
+For every iteration, follow this order strictly — do not skip or reorder steps:
+
+1. **Propose** — describe the planned solution with key code sketches. Wait for approval.
+2. **Implement** — write the code after approval only.
+3. **Verify** — run the iteration's check from `docs/tasklist.md`. Wait for user confirmation that it works.
+4. **Update `docs/tasklist.md`** — tick completed checkboxes, set iteration status to ✅ Готова in the progress table.
+5. **Commit** — make a git commit with a concise message describing the iteration.
+6. **Propose next** — ask for approval before starting the next iteration.
+
+## Rules
+
+- Never start an iteration without prior approval of the approach.
+- Never move to the next iteration without explicit user confirmation.
+- Never implement more than the current iteration requires.
+- Follow `docs/vision.md` and `.cursor/rules/conventions.mdc` at all times.
