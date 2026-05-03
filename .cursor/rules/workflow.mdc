@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Development Workflow
 
-Reference documents: `docs/vision.md` (technical vision), `docs/tasklist.md` (iteration plan).
+Reference documents: @docs/vision.md (technical vision), @docs/tasklist.md (iteration plan).
 
 ## Iteration Loop
 

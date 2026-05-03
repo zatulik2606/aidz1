@@ -1,8 +1,6 @@
 ---
-description: Coding conventions for the project. Reflects the technical vision from docs/vision.md.
 alwaysApply: true
 ---
-
 # Coding Conventions
 
 Full technical vision: `docs/vision.md`.
