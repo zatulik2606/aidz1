@@ -5,16 +5,44 @@ from openai import AsyncOpenAI
 from src.config import Config
 
 
+def _detect_image_mime(image_bytes: bytes, preferred_mime: str = "") -> str:
+    normalized_preferred = preferred_mime.strip().lower()
+    if normalized_preferred in {
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/gif",
+    }:
+        return normalized_preferred
+
+    if image_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if image_bytes.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if image_bytes.startswith(b"GIF87a") or image_bytes.startswith(b"GIF89a"):
+        return "image/gif"
+    if (
+        len(image_bytes) >= 12
+        and image_bytes[0:4] == b"RIFF"
+        and image_bytes[8:12] == b"WEBP"
+    ):
+        return "image/webp"
+
+    return "image/jpeg"
+
+
 async def generate_image_reply(
     image_bytes: bytes,
     history: list[dict[str, str]],
     config: Config,
     user_hint: str = "",
+    preferred_mime: str = "",
 ) -> str:
     client = AsyncOpenAI(
         api_key=config.llm_api_key,
         base_url=config.llm_base_url,
     )
+    image_mime = _detect_image_mime(image_bytes, preferred_mime)
     encoded_image = base64.b64encode(image_bytes).decode("utf-8")
     hint_text = user_hint.strip()
     image_task_text = (
@@ -34,7 +62,7 @@ async def generate_image_reply(
         },
         {
             "type": "image_url",
-            "image_url": {"url": f"data:image/jpeg;base64,{encoded_image}"},
+            "image_url": {"url": f"data:{image_mime};base64,{encoded_image}"},
         },
     ]
     messages: list[dict[str, object]] = [

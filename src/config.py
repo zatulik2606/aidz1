@@ -11,8 +11,10 @@ REQUIRED_VARS = (
     "LLM_API_KEY",
     "LLM_TEXT_MODEL",
     "LLM_IMAGE_MODEL",
+    "LLM_TRANSCRIBE_MODEL",
     "SYSTEM_PROMPT_TEXT",
     "SYSTEM_PROMPT_IMAGE",
+    "SYSTEM_PROMPT_AUDIO",
 )
 
 
@@ -24,8 +26,10 @@ class Config:
     llm_api_key: str
     llm_text_model: str
     llm_image_model: str
+    llm_transcribe_model: str
     system_prompt_text: str
     system_prompt_image: str
+    system_prompt_audio: str
 
 
 def load_config() -> Config:
@@ -43,6 +47,8 @@ def load_config() -> Config:
         llm_api_key=os.environ["LLM_API_KEY"],
         llm_text_model=os.environ["LLM_TEXT_MODEL"],
         llm_image_model=os.environ["LLM_IMAGE_MODEL"],
+        llm_transcribe_model=os.environ["LLM_TRANSCRIBE_MODEL"],
         system_prompt_text=os.environ["SYSTEM_PROMPT_TEXT"],
         system_prompt_image=os.environ["SYSTEM_PROMPT_IMAGE"],
+        system_prompt_audio=os.environ["SYSTEM_PROMPT_AUDIO"],
     )
