@@ -64,6 +64,7 @@ make docker-down
 - Подключите репозиторий в Railway
 - Убедитесь, что используется `Dockerfile` / `railway.toml`
 - Добавьте переменные окружения из `.env.example`
+- Для Railway указывайте внешние модели (через API, например OpenRouter), а не локальные `localhost`/Ollama-модели
 - Выполните deploy и проверьте логи `Start polling`
 
 ## Демонстрация
