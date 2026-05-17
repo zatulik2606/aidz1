@@ -9,8 +9,10 @@ REQUIRED_VARS = (
     "LLM_PROVIDER",
     "LLM_BASE_URL",
     "LLM_API_KEY",
-    "LLM_MODEL",
-    "SYSTEM_PROMPT",
+    "LLM_TEXT_MODEL",
+    "LLM_IMAGE_MODEL",
+    "SYSTEM_PROMPT_TEXT",
+    "SYSTEM_PROMPT_IMAGE",
 )
 
 
@@ -20,8 +22,10 @@ class Config:
     llm_provider: str
     llm_base_url: str
     llm_api_key: str
-    llm_model: str
-    system_prompt: str
+    llm_text_model: str
+    llm_image_model: str
+    system_prompt_text: str
+    system_prompt_image: str
 
 
 def load_config() -> Config:
@@ -37,6 +41,8 @@ def load_config() -> Config:
         llm_provider=os.environ["LLM_PROVIDER"],
         llm_base_url=os.environ["LLM_BASE_URL"],
         llm_api_key=os.environ["LLM_API_KEY"],
-        llm_model=os.environ["LLM_MODEL"],
-        system_prompt=os.environ["SYSTEM_PROMPT"],
+        llm_text_model=os.environ["LLM_TEXT_MODEL"],
+        llm_image_model=os.environ["LLM_IMAGE_MODEL"],
+        system_prompt_text=os.environ["SYSTEM_PROMPT_TEXT"],
+        system_prompt_image=os.environ["SYSTEM_PROMPT_IMAGE"],
     )

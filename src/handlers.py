@@ -11,6 +11,7 @@ from src.dialog_store import (
     clear_history,
     get_history,
 )
+from src.image_client import generate_image_reply
 from src.llm import generate_reply
 
 
@@ -23,12 +24,15 @@ def build_router(config: Config) -> Router:
     @router.message(CommandStart())
     async def handle_start(message: Message) -> None:
         await message.answer(
-            "👋 Привет! Я ассистент инженера мониторинга.\n\n"
-            "Опишите аварийное событие или алерт — я помогу:\n"
-            "• классифицировать инцидент\n"
-            "• определить вероятные причины\n"
-            "• предложить шаги по локализации\n\n"
-            "Команды:\n"
+            "👋 Привет! Я старший инженер мониторинга ИТ-сети.\n\n"
+            "Для анализа отправь текстом:\n"
+            "1) что произошло,\n"
+            "2) какие симптомы,\n"
+            "3) какие сервисы затронуты.\n\n"
+            "Я верну структурированный разбор и отдельно выделю:\n"
+            "• самый быстрый способ устранения\n"
+            "• самый эффективный способ устранения\n\n"
+            "Команда:\n"
             "/reset — очистить контекст текущего инцидента"
         )
 
@@ -56,5 +60,30 @@ def build_router(config: Config) -> Router:
         add_user_message(chat_id, user_text)
         add_assistant_message(chat_id, answer)
         await message.answer(answer or "Модель вернула пустой ответ.")
+
+    @router.message(F.photo)
+    async def handle_photo_message(message: Message) -> None:
+        chat_id = message.chat.id
+        history = get_history(chat_id)
+        photo = message.photo[-1]
+        user_hint = message.caption or ""
+        file = await message.bot.get_file(photo.file_id)
+        image_stream = await message.bot.download_file(file.file_path)
+        image_bytes = image_stream.read()
+        try:
+            answer = await generate_image_reply(
+                image_bytes=image_bytes,
+                history=history,
+                config=config,
+                user_hint=user_hint,
+            )
+        except Exception:
+            logger.exception("Image analysis request failed")
+            await message.answer("Сервис временно недоступен, попробуйте позже.")
+            return
+
+        add_user_message(chat_id, f"[image] {user_hint}".strip())
+        add_assistant_message(chat_id, answer)
+        await message.answer(answer or "Не удалось сформировать ответ по изображению.")
 
     return router
