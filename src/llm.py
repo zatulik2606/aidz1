@@ -14,6 +14,13 @@ async def generate_reply(
     )
     messages: list[dict[str, str]] = [
         {"role": "system", "content": config.system_prompt_text},
+        {
+            "role": "system",
+            "content": (
+                "Отвечай строго на русском языке. "
+                "Не переключайся на английский даже при англоязычном вводе."
+            ),
+        },
         *history,
         {"role": "user", "content": user_text},
     ]

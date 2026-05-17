@@ -23,15 +23,40 @@ logger = logging.getLogger(__name__)
 def build_router(config: Config) -> Router:
     router = Router()
 
+    async def _handle_image_payload(
+        message: Message,
+        image_bytes: bytes,
+        user_hint: str,
+        preferred_mime: str = "",
+    ) -> None:
+        chat_id = message.chat.id
+        history = get_history(chat_id)
+        try:
+            answer = await generate_image_reply(
+                image_bytes=image_bytes,
+                history=history,
+                config=config,
+                user_hint=user_hint,
+                preferred_mime=preferred_mime,
+            )
+        except Exception:
+            logger.exception("Image analysis request failed")
+            await message.answer("Сервис временно недоступен, попробуйте позже.")
+            return
+
+        add_user_message(chat_id, f"[image] {user_hint}".strip())
+        add_assistant_message(chat_id, answer)
+        await message.answer(answer or "Не удалось сформировать ответ по изображению.")
+
     @router.message(CommandStart())
     async def handle_start(message: Message) -> None:
         await message.answer(
-            "👋 Привет! Я старший инженер мониторинга ИТ-сети.\n\n"
+            "👋 Привет! Я Шустрый — старший инженер мониторинга ИТ-сети.\n\n"
             "Для анализа отправь текстом:\n"
             "1) что произошло,\n"
             "2) какие симптомы,\n"
             "3) какие сервисы затронуты.\n\n"
-            "Или отправь фото/голосовое сообщение с описанием аварии.\n\n"
+            "Или отправь фото, изображение файлом, либо голосовое сообщение.\n\n"
             "Я верну структурированный разбор и отдельно выделю:\n"
             "• самый быстрый способ устранения\n"
             "• самый эффективный способ устранения\n\n"
@@ -66,8 +91,6 @@ def build_router(config: Config) -> Router:
 
     @router.message(F.photo)
     async def handle_photo_message(message: Message) -> None:
-        chat_id = message.chat.id
-        history = get_history(chat_id)
         photo = message.photo[-1]
         user_hint = message.caption or ""
         file = await message.bot.get_file(photo.file_id)
@@ -81,22 +104,38 @@ def build_router(config: Config) -> Router:
             await message.answer("Не удалось прочитать изображение, попробуйте снова.")
             return
 
-        try:
-            answer = await generate_image_reply(
-                image_bytes=image_bytes,
-                history=history,
-                config=config,
-                user_hint=user_hint,
-                preferred_mime="",
-            )
-        except Exception:
-            logger.exception("Image analysis request failed")
-            await message.answer("Сервис временно недоступен, попробуйте позже.")
+        await _handle_image_payload(
+            message=message,
+            image_bytes=image_bytes,
+            user_hint=user_hint,
+            preferred_mime="",
+        )
+
+    @router.message(F.document & F.document.mime_type.startswith("image/"))
+    async def handle_image_document_message(message: Message) -> None:
+        document = message.document
+        if document is None:
+            await message.answer("Не удалось обработать файл изображения.")
             return
 
-        add_user_message(chat_id, f"[image] {user_hint}".strip())
-        add_assistant_message(chat_id, answer)
-        await message.answer(answer or "Не удалось сформировать ответ по изображению.")
+        user_hint = message.caption or ""
+        file = await message.bot.get_file(document.file_id)
+        if not file.file_path:
+            await message.answer("Не удалось получить файл изображения, попробуйте снова.")
+            return
+
+        image_stream = await message.bot.download_file(file.file_path)
+        image_bytes = image_stream.read()
+        if not image_bytes:
+            await message.answer("Не удалось прочитать изображение, попробуйте снова.")
+            return
+
+        await _handle_image_payload(
+            message=message,
+            image_bytes=image_bytes,
+            user_hint=user_hint,
+            preferred_mime=document.mime_type or "",
+        )
 
     @router.message(F.voice)
     async def handle_voice_message(message: Message) -> None:

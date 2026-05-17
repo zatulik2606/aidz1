@@ -67,6 +67,13 @@ async def generate_image_reply(
     ]
     messages: list[dict[str, object]] = [
         {"role": "system", "content": config.system_prompt_image},
+        {
+            "role": "system",
+            "content": (
+                "Всегда отвечай строго на русском языке. "
+                "Не используй английский в объяснениях и рекомендациях."
+            ),
+        },
         *history,
         {"role": "user", "content": image_content},
     ]
