@@ -73,5 +73,5 @@ make docker-down
 При необходимости можно добавить и отдельный скриншот:
 
 ```md
-![Bot Screenshot](doc/screenshot.png)
+![Bot Screenshot](doc/demo.png)
 ```
