@@ -68,7 +68,7 @@ make docker-down
 
 ## Демонстрация
 
-![Bot Demo](doc/demo.gif)
+![Bot Demo](docs/demo.gif)
 
 При необходимости можно добавить и отдельный скриншот:
 
