@@ -22,7 +22,15 @@ def build_router(config: Config) -> Router:
 
     @router.message(CommandStart())
     async def handle_start(message: Message) -> None:
-        await message.answer("Привет! Я запущен и готов к работе.")
+        await message.answer(
+            "👋 Привет! Я ассистент инженера мониторинга.\n\n"
+            "Опишите аварийное событие или алерт — я помогу:\n"
+            "• классифицировать инцидент\n"
+            "• определить вероятные причины\n"
+            "• предложить шаги по локализации\n\n"
+            "Команды:\n"
+            "/reset — очистить контекст текущего инцидента"
+        )
 
     @router.message(Command("reset"))
     async def handle_reset(message: Message) -> None:
