@@ -11,10 +11,10 @@
 | Telegram | `aiogram` (`polling`) | Входной канал и обработка сообщений |
 | LLM + tools | `openai` SDK | Единый клиент для LLM и tool calling |
 | Agent loop | `openai` SDK tool calling | Явный и читаемый цикл вызова инструментов |
-| Embeddings | `text-embedding-3-small` | Векторизация документов и запросов |
+| Embeddings | `text-embedding-3-small` (через `.env`) | Векторизация документов и запросов; конкретная модель задаётся переменной `EMBEDDING_MODEL` |
 | Векторная БД | `chromadb` (`./data/chroma`) | Поиск по документам компании (RAG) |
 | PDF-парсинг | `pymupdf4llm` | Извлечение текста из PDF |
-| Веб-поиск | `tavily-python` | Проверка актуальных фактов из интернета |
+| Веб-поиск | `tavily-python` / `Brave Search API` | Проверка актуальных фактов из интернета |
 | Лид-система | `sqlite3` (`./data/leads.db`) | Фиксация заявок на консультацию |
 | Мониторинг (опц.) | `langsmith` | Трейсинг цепочки ответа агента |
 | Контейнеризация | `Docker` / `docker compose` | Локальный и облачный запуск |
@@ -41,7 +41,7 @@
 - `src/tools/web_search.py` — проверка актуальных фактов из интернета.
 - `src/tools/capture_lead.py` — фиксация лида (имя, контакт, запрос).
 - `src/rag/` — индексация PDF и работа с векторным хранилищем.
-- `prompts/system.txt` — единый системный промпт агента-консультанта.
+- `data/SYSTEM_PROMPT.txt` — единый системный промпт агента-консультанта.
 - `tests/` — минимальные smoke-тесты.
 - Корневые служебные файлы: `Makefile`, `Dockerfile`, `.env.example`, `pyproject.toml`.
 - `data/` — постоянные данные (`chroma`, `leads.db`).
@@ -65,7 +65,7 @@ flowchart LR
     AG --> WEB[web_search]
     AG --> LEAD[capture_lead]
     RAG --> CH[(ChromaDB\n./data/chroma)]
-    WEB --> TV[Tavily Search API]
+    WEB --> TV[Tavily Search API / Brave Search API]
     LEAD --> DB[(SQLite\n./data/leads.db)]
     AG --> H
 ```
@@ -76,7 +76,7 @@ flowchart LR
 - RAG-индекс: коллекции и чанки документов в `ChromaDB` (`./data/chroma`).
 - Источники документов: PDF компании (портфолио, услуги, программы курсов) из папки `data`.
 - Лиды хранятся в `SQLite` (`./data/leads.db`): `id`, `created_at`, `name`, `contact`, `request_text`, `source_chat_id`.
-- Системный промпт хранится в файле `prompts/system.txt`, в конфиге передается путь до файла.
+- Системный промпт хранится в файле `data/SYSTEM_PROMPT.txt`, в конфиге передается путь до файла.
 
 ## 6. Работа с LLM
 
@@ -84,7 +84,7 @@ flowchart LR
 - Агент работает через `openai` SDK tool calling: модель может вызвать `rag_search`, `web_search`, `capture_lead`.
 - Эмбеддинги строятся моделью `text-embedding-3-small` через тот же `LLM_BASE_URL` (OpenRouter-compatible endpoint).
 - Модель эмбеддингов задаётся в `.env` отдельной переменной (например, `EMBEDDING_MODEL`).
-- Системный промпт загружается из файла по пути из `.env` (например, `SYSTEM_PROMPT_PATH=prompts/system.txt`).
+- Системный промпт загружается из файла по пути из `.env` (например, `SYSTEM_PROMPT_PATH=data/SYSTEM_PROMPT.txt`).
 - Когда агент не уверен или тема может быть устаревшей, он использует веб-поиск перед финальным ответом.
 - Провайдер выбирается через `LLM_PROVIDER`; значение по умолчанию — `openrouter`.
 - Поддерживаются провайдеры с OpenAI-compatible API; клиенты являются точками расширения и допускают подмену реализации.
@@ -92,7 +92,7 @@ flowchart LR
 
 ## 7. Сценарии работы
 
-- `startup`: при старте валидируются обязательные переменные окружения, загружается `prompts/system.txt`, открываются `ChromaDB` и `leads.db`; при ошибке бот не запускается.
+- `startup`: при старте валидируются обязательные переменные окружения, загружается `data/SYSTEM_PROMPT.txt`, открываются `ChromaDB` и `leads.db`; при ошибке бот не запускается.
 - `start`: пользователь вызывает `/start`, бот отправляет приветствие и краткую инструкцию по использованию.
 - `chat-question`: пользователь задает вопрос о компании/услугах/курсах, агент ищет ответ в базе документов и возвращает краткую консультацию.
 - `fact-check`: если вопрос про актуальные условия/рынок/внешние данные, агент дополнительно проверяет факты через веб-поиск.
@@ -106,7 +106,7 @@ flowchart LR
 - В репозитории хранится только `.env.example` без секретов.
 - Загрузка и первичная валидация конфига выполняются в `src/config.py` на старте приложения.
 - Подход `fail fast`: при отсутствии обязательных значений приложение завершается с понятной ошибкой.
-- Обязательные переменные: `TELEGRAM_BOT_TOKEN`, `LLM_PROVIDER`, `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`, `EMBEDDING_MODEL`, `SYSTEM_PROMPT_PATH`, `TAVILY_API_KEY`.
+- Обязательные переменные: `TELEGRAM_BOT_TOKEN`, `LLM_PROVIDER`, `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`, `EMBEDDING_MODEL`, `SYSTEM_PROMPT_PATH`, `TAVILY_API_KEY` или `BRAVE_API_KEY`.
 - Для лидов и векторной базы используются локальные пути в `./data` (по умолчанию): `LEADS_DB_PATH=./data/leads.db`, `CHROMA_PATH=./data/chroma`.
 - Опциональный мониторинг трассировок: `LANGSMITH_ENABLED=false` (по умолчанию отключено).
 - Для `LLM_PROVIDER` используется значение по умолчанию `openrouter`, если явно не задано и поддержан дефолт в конфиге.
@@ -119,7 +119,7 @@ flowchart LR
 - Формат записи: время, уровень, модуль, сообщение.
 - Уровень `INFO`: запуск/остановка приложения, обработка команд, успешные ответы.
 - Уровень `WARNING`: временные сбои внешних вызовов и fallback между инструментами.
-- Уровень `ERROR`: ошибки Telegram API, LLM API, Tavily и необработанные исключения.
+- Уровень `ERROR`: ошибки Telegram API, LLM API, Tavily/Brave и необработанные исключения.
 - В логах не допускаются секреты (`TELEGRAM_BOT_TOKEN`, `LLM_API_KEY`) и полный текст пользовательских сообщений.
 - При включенном `LANGSMITH_ENABLED=true` дополнительно отправляются трассировки агентного цикла.
 
@@ -130,6 +130,6 @@ flowchart LR
 - Конфигурация в обоих режимах берётся из `.env`.
 - Для Docker используется volume `./data:/app/data`, чтобы `chroma` и `leads.db` сохранялись между перезапусками.
 - Облачный деплой: **Railway** — платформа с поддержкой Docker-контейнеров, деплой через GitHub-интеграцию или Railway CLI.
-- Секреты (`TELEGRAM_BOT_TOKEN`, `LLM_API_KEY`, `TAVILY_API_KEY` и др.) задаются в переменных окружения Railway (не в репозитории).
+- Секреты (`TELEGRAM_BOT_TOKEN`, `LLM_API_KEY`, `TAVILY_API_KEY`/`BRAVE_API_KEY` и др.) задаются в переменных окружения Railway (не в репозитории).
 - CI/CD: при пуше в `main` Railway автоматически пересобирает и перезапускает контейнер.
 - `Procfile` или Railway-совместимый `Dockerfile` используется как точка входа при облачном деплое.
