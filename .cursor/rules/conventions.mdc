@@ -3,29 +3,47 @@ alwaysApply: true
 ---
 # Coding Conventions
 
-Full technical vision: `docs/vision.md`.
+Full technical vision: `vision.md`.
 
 ## Principles
 
-- **KISS**: implement only what is needed to validate the idea. No over-engineering.
-- **Functional style**: no classes, no OOP. Use plain functions and modules.
-- **Async everywhere**: all I/O (Telegram, LLM) must be `async/await`.
+- **KISS first**: implement only what is needed for MVP validation.
+- **Functional style**: no OOP abstractions unless explicitly requested.
+- **Async I/O**: Telegram, LLM, web search, and storage calls use `async/await`.
+- **No heavy AI frameworks**: do not introduce LangChain or similar stacks.
+- **Allowed lightweight AI deps**: `langsmith` for optional tracing, `tavily-python` for web search, `pymupdf4llm` for PDF-to-markdown extraction.
+- **Agent loop must stay explicit**: model step -> optional tool calls -> final user answer.
 
 ## Module Responsibilities
 
-Each module has one responsibility. Do not mix concerns across modules:
+Keep modules focused and do not mix responsibilities:
 
 - `src/main.py` — wires components, starts polling only.
-- `src/config.py` — loads and validates env. Fail fast if required vars are missing.
-- `src/handlers.py` — Telegram message handlers only.
-- `src/llm.py` — one public async function to call the LLM. No Telegram logic here.
-- `src/dialog_store.py` — in-memory `dict[int, list[dict]]` keyed by `chat_id`. No I/O.
+- `src/config.py` — loads and validates env, fail fast on missing required vars.
+- `src/handlers.py` — Telegram transport layer only.
+- `src/agent.py` — orchestration of agent loop and final answer assembly.
+- `src/tools/*` — isolated tools: `rag_search`, `web_search`, `capture_lead`.
+- `src/rag/*` — PDF ingestion and vector search workflow.
+
+## Project Structure
+
+Use and preserve this baseline layout:
+
+- Root: `src/`, `docs/`, `tests/`, `vision.md`, `pyproject.toml`, `Dockerfile`, `docker-compose.yml`.
+- `src/`: runtime application code (`main.py`, `config.py`, `handlers.py`, `agent.py`, `tools/`, `rag/`).
+- `docs/`: product and implementation notes (`idea.md`, `tasklist.md`, and related docs).
+- `tests/`: automated tests mirroring `src/` responsibilities.
+- `data/`: runtime artifacts only (prompt file, vector DB, local sqlite/json stores); do not commit secrets.
+
+When adding new files, place them in the closest existing module area instead of creating new top-level folders.
 
 ## Configuration
 
-- All config comes from `.env`. No hardcoded secrets or values.
-- Required vars: `TELEGRAM_BOT_TOKEN`, `LLM_PROVIDER`, `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`, `SYSTEM_PROMPT`.
-- `SYSTEM_PROMPT` is mandatory — the app must not start without it.
+- All runtime config comes from `.env`; no hardcoded secrets or model IDs.
+- Keep config aligned with `docs/vision.md`.
+- Required keys include `LLM_MODEL`, `EMBEDDING_MODEL`, `SYSTEM_PROMPT_PATH`.
+- System prompt is loaded from file path (`data/SYSTEM_PROMPT.txt` by default).
+- Persistent paths must use `./data` (`CHROMA_PATH`, `LEADS_DB_PATH`).
 
 ## Logging
 
@@ -33,7 +51,13 @@ Each module has one responsibility. Do not mix concerns across modules:
 - Log to `stdout`. Format: `time | level | module | message`.
 - Never log secrets or full user message content.
 
+## Tracing
+
+- LangSmith tracing is optional for MVP and should be enabled only behind a tracing flag/env var.
+- Use `@traceable` only when LangSmith tracing is explicitly enabled; keep default runtime independent from it.
+- Apply `@traceable` only to functions that are actually part of tracing-critical flow (agent step, tool execution, retrieval), not to every helper.
+
 ## Error Handling
 
 - On LLM/network error: send a short user-facing message, log the technical reason at `ERROR` level.
-’’
+- Tool failures should degrade gracefully (fallback or concise failure message), not crash the bot.
