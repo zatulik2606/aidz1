@@ -76,7 +76,10 @@ def build_router(config: Config) -> Router:
         history = get_history(chat_id)
         try:
             answer = await run_agent(
-                history=[*history, {"role": "user", "content": user_text}],
+                history=[
+                    *history,
+                    {"role": "user", "content": user_text, "chat_id": chat_id},
+                ],
                 config=config,
             )
         except Exception:
@@ -168,7 +171,10 @@ def build_router(config: Config) -> Router:
             if user_hint:
                 voice_text = f"{user_hint}\n\nТранскрипция голосового сообщения:\n{transcript}"
             answer = await run_agent(
-                history=[*history, {"role": "user", "content": voice_text}],
+                history=[
+                    *history,
+                    {"role": "user", "content": voice_text, "chat_id": chat_id},
+                ],
                 config=config,
             )
         except APIStatusError as error:

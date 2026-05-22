@@ -24,6 +24,7 @@ class Config:
     system_prompt_text: str
     system_prompt_image: str
     system_prompt_audio: str
+    leads_db_path: str
     langsmith_enabled: bool
     langsmith_api_key: str
     langsmith_project: str
@@ -117,6 +118,7 @@ def load_config() -> Config:
         system_prompt_text=system_prompt_text,
         system_prompt_image=system_prompt_image,
         system_prompt_audio=system_prompt_audio,
+        leads_db_path=os.getenv("LEADS_DB_PATH", "./data/leads.db"),
         langsmith_enabled=langsmith_enabled,
         langsmith_api_key=langsmith_api_key,
         langsmith_project=langsmith_project,

@@ -9,7 +9,10 @@ from src.config import Config
 
 class AgentLoopTests(unittest.TestCase):
     @patch("bot.agent.AsyncOpenAI")
-    def test_agent_returns_direct_answer_without_tool_calls(self, mock_client_cls) -> None:
+    def test_agent_returns_direct_answer_without_tool_calls(
+        self,
+        mock_client_cls,
+    ) -> None:
         mock_client = mock_client_cls.return_value
         completion = SimpleNamespace(
             choices=[
@@ -33,6 +36,7 @@ class AgentLoopTests(unittest.TestCase):
             system_prompt_text="text prompt",
             system_prompt_image="image prompt",
             system_prompt_audio="audio prompt",
+            leads_db_path="./data/leads.db",
             langsmith_enabled=False,
             langsmith_api_key="",
             langsmith_project="",
@@ -47,7 +51,10 @@ class AgentLoopTests(unittest.TestCase):
         self.assertEqual(result, "Готово.")
 
     @patch("bot.agent.AsyncOpenAI")
-    def test_agent_runs_tool_call_and_builds_final_answer(self, mock_client_cls) -> None:
+    def test_agent_runs_tool_call_and_builds_final_answer(
+        self,
+        mock_client_cls,
+    ) -> None:
         mock_client = mock_client_cls.return_value
         tool_call = SimpleNamespace(
             id="tool_1",
@@ -87,6 +94,7 @@ class AgentLoopTests(unittest.TestCase):
             system_prompt_text="text prompt",
             system_prompt_image="image prompt",
             system_prompt_audio="audio prompt",
+            leads_db_path="./data/leads.db",
             langsmith_enabled=False,
             langsmith_api_key="",
             langsmith_project="",
@@ -100,3 +108,4 @@ class AgentLoopTests(unittest.TestCase):
         )
         self.assertEqual(result, "Проверил факт и сформировал ответ.")
         self.assertEqual(mock_client.chat.completions.create.await_count, 2)
+
