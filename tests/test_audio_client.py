@@ -27,6 +27,9 @@ class AudioClientTests(unittest.TestCase):
             system_prompt_text="text prompt",
             system_prompt_image="image prompt",
             system_prompt_audio="audio prompt",
+            langsmith_enabled=False,
+            langsmith_api_key="",
+            langsmith_project="",
         )
         result = asyncio.run(
             generate_audio_reply(

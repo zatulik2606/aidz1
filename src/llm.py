@@ -1,5 +1,4 @@
-from openai import AsyncOpenAI
-
+from bot.agent import run_agent
 from src.config import Config
 
 
@@ -8,25 +7,7 @@ async def generate_reply(
     history: list[dict[str, str]],
     config: Config,
 ) -> str:
-    client = AsyncOpenAI(
-        api_key=config.llm_api_key,
-        base_url=config.llm_base_url,
+    return await run_agent(
+        history=[*history, {"role": "user", "content": user_text}],
+        config=config,
     )
-    messages: list[dict[str, str]] = [
-        {"role": "system", "content": config.system_prompt_text},
-        {
-            "role": "system",
-            "content": (
-                "Отвечай строго на русском языке. "
-                "Не переключайся на английский даже при англоязычном вводе."
-            ),
-        },
-        *history,
-        {"role": "user", "content": user_text},
-    ]
-    response = await client.chat.completions.create(
-        model=config.llm_text_model,
-        messages=messages,
-    )
-    content = response.choices[0].message.content
-    return (content or "").strip()

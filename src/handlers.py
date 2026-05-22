@@ -5,6 +5,7 @@ from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
 from openai import APIStatusError
 
+from bot.agent import run_agent
 from src.config import Config
 from src.dialog_store import (
     add_assistant_message,
@@ -14,7 +15,6 @@ from src.dialog_store import (
 )
 from src.audio_client import generate_audio_reply, _normalize_audio_format
 from src.image_client import generate_image_reply
-from src.llm import generate_reply
 
 
 logger = logging.getLogger(__name__)
@@ -75,9 +75,8 @@ def build_router(config: Config) -> Router:
         user_text = message.text or ""
         history = get_history(chat_id)
         try:
-            answer = await generate_reply(
-                user_text=user_text,
-                history=history,
+            answer = await run_agent(
+                history=[*history, {"role": "user", "content": user_text}],
                 config=config,
             )
         except Exception:
@@ -168,9 +167,8 @@ def build_router(config: Config) -> Router:
             voice_text = transcript
             if user_hint:
                 voice_text = f"{user_hint}\n\nТранскрипция голосового сообщения:\n{transcript}"
-            answer = await generate_reply(
-                user_text=voice_text,
-                history=history,
+            answer = await run_agent(
+                history=[*history, {"role": "user", "content": voice_text}],
                 config=config,
             )
         except APIStatusError as error:
