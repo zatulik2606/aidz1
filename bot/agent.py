@@ -4,6 +4,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from langsmith import traceable
+from langsmith.wrappers import wrap_openai
 from openai import AsyncOpenAI
 
 from src.config import Config
@@ -130,10 +131,11 @@ async def _run_agent_traceable(history: list[dict[str, str]], config: Config) ->
 
 
 async def _run_agent_impl(history: list[dict[str, str]], config: Config) -> str:
-    client = AsyncOpenAI(
+    base_client = AsyncOpenAI(
         api_key=config.llm_api_key,
         base_url=config.llm_base_url,
     )
+    client = wrap_openai(base_client) if config.langsmith_enabled else base_client
     messages = _build_messages(history=history, config=config)
     step = 0
 
