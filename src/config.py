@@ -21,10 +21,12 @@ class Config:
     llm_text_model: str
     llm_image_model: str
     llm_transcribe_model: str
+    embedding_model: str
     system_prompt_text: str
     system_prompt_image: str
     system_prompt_audio: str
     leads_db_path: str
+    chroma_path: str
     langsmith_enabled: bool
     langsmith_api_key: str
     langsmith_project: str
@@ -115,10 +117,12 @@ def load_config() -> Config:
         llm_text_model=llm_text_model,
         llm_image_model=llm_image_model,
         llm_transcribe_model=llm_transcribe_model,
+        embedding_model=os.getenv("EMBEDDING_MODEL", "openai/text-embedding-3-small"),
         system_prompt_text=system_prompt_text,
         system_prompt_image=system_prompt_image,
         system_prompt_audio=system_prompt_audio,
         leads_db_path=os.getenv("LEADS_DB_PATH", "./data/leads.db"),
+        chroma_path=os.getenv("CHROMA_PATH", "./data/chroma"),
         langsmith_enabled=langsmith_enabled,
         langsmith_api_key=langsmith_api_key,
         langsmith_project=langsmith_project,

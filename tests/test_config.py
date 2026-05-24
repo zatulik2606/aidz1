@@ -46,6 +46,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.langsmith_api_key, "")
         self.assertEqual(config.langsmith_project, "")
         self.assertEqual(config.leads_db_path, "./data/leads.db")
+        self.assertEqual(config.chroma_path, "./data/chroma")
 
     @patch("src.config.load_dotenv")
     @patch.dict(

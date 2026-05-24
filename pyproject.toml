@@ -5,8 +5,10 @@ description = "Telegram bot MVP with LLM integration"
 requires-python = ">=3.12"
 dependencies = [
     "aiogram>=3.7.0",
+    "chromadb>=1.5.9",
     "langsmith>=0.8.5",
     "openai>=1.0.0",
+    "pymupdf4llm>=1.27.2.3",
     "python-dotenv>=1.0.0",
 ]
 

@@ -22,7 +22,7 @@ Keep modules focused and do not mix responsibilities:
 - `src/config.py` — loads and validates env, fail fast on missing required vars.
 - `src/handlers.py` — Telegram transport layer only.
 - `src/agent.py` — orchestration of agent loop and final answer assembly.
-- `src/tools/*` — isolated tools: `rag_search`, `web_search`, `capture_lead`.
+- `src/tools/*` — isolated tools: `rag`, `web_search`, `capture_lead`.
 - `src/rag/*` — PDF ingestion and vector search workflow.
 
 ## Project Structure

@@ -1,4 +1,4 @@
-.PHONY: install run run-local docker-build run-docker run-docker-bg docker-logs docker-down
+.PHONY: install run run-local rag-ingest docker-build run-docker run-docker-bg docker-logs docker-down
 
 install:
 	uv sync
@@ -7,6 +7,9 @@ run:
 	uv run python -m src.main
 
 run-local: run
+
+rag-ingest:
+	uv run python -m src.rag.index_pdf
 
 docker-build:
 	docker compose build
