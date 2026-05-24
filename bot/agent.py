@@ -10,7 +10,7 @@ from openai import AsyncOpenAI
 from src.config import Config
 from src.tools.capture_lead import capture_lead
 from src.tools.rag import rag_search
-from src.tools.web_search import web_search
+from src.tools.web import web_search
 
 
 logger = logging.getLogger(__name__)

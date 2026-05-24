@@ -42,6 +42,7 @@ class AgentLoopTests(unittest.TestCase):
             langsmith_enabled=False,
             langsmith_api_key="",
             langsmith_project="",
+            tavily_api_key="",
         )
 
         result = asyncio.run(
@@ -102,6 +103,7 @@ class AgentLoopTests(unittest.TestCase):
             langsmith_enabled=False,
             langsmith_api_key="",
             langsmith_project="",
+            tavily_api_key="",
         )
 
         result = asyncio.run(

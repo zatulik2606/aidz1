@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import os
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values, load_dotenv
 
 
 REQUIRED_BASE_VARS = (
@@ -30,6 +30,7 @@ class Config:
     langsmith_enabled: bool
     langsmith_api_key: str
     langsmith_project: str
+    tavily_api_key: str = ""
 
 
 def _first_non_empty(*values: str) -> str:
@@ -51,6 +52,7 @@ def _load_prompt_from_path(path: str) -> str:
 
 def load_config() -> Config:
     load_dotenv()
+    dotenv_map = dotenv_values(".env")
 
     missing = [name for name in REQUIRED_BASE_VARS if not os.getenv(name)]
     if missing:
@@ -108,6 +110,10 @@ def load_config() -> Config:
         os.getenv("LANGSMITH_PROJECT", ""),
         os.getenv("LANGCHAIN_PROJECT", ""),
     )
+    tavily_api_key = _first_non_empty(
+        os.getenv("TAVILY_API_KEY", ""),
+        str(dotenv_map.get("TAVILY_API_KEY", "") or ""),
+    )
 
     return Config(
         telegram_bot_token=os.environ["TELEGRAM_BOT_TOKEN"],
@@ -126,4 +132,5 @@ def load_config() -> Config:
         langsmith_enabled=langsmith_enabled,
         langsmith_api_key=langsmith_api_key,
         langsmith_project=langsmith_project,
+        tavily_api_key=tavily_api_key,
     )

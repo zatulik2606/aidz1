@@ -14,7 +14,7 @@
 | Embeddings | `text-embedding-3-small` (через `.env`) | Векторизация документов и запросов; конкретная модель задаётся переменной `EMBEDDING_MODEL` |
 | Векторная БД | `chromadb` (`./data/chroma`) | Поиск по документам компании (RAG) |
 | PDF-парсинг | `pymupdf4llm` | Извлечение текста из PDF |
-| Веб-поиск | `tavily-python` / `Brave Search API` | Проверка актуальных фактов из интернета (план итерации 15) |
+| Веб-поиск | `tavily-python` | Проверка актуальных фактов из интернета (итерация 15 реализована) |
 | Лид-система | `sqlite3` (`./data/leads.db`) | Фиксация заявок на консультацию |
 | Мониторинг (опц.) | `langsmith` | Трейсинг цепочки ответа агента |
 | Контейнеризация | `Docker` / `docker compose` | Локальный и облачный запуск |
@@ -38,7 +38,7 @@
 - `src/handlers.py` — обработчики входящих сообщений Telegram.
 - `bot/agent.py` — агентный цикл консультанта (принятие решения: ответить сразу или вызвать инструмент).
 - `src/tools/rag.py` — поиск по документам компании (портфолио/услуги/программы курсов).
-- `src/tools/web_search.py` — проверка актуальных фактов из интернета.
+- `src/tools/web.py` — проверка актуальных фактов из интернета.
 - `src/tools/capture_lead.py` — фиксация лида (имя, контакт, запрос).
 - `src/rag/` — индексация PDF и работа с векторным хранилищем.
 - `data/SYSTEM_PROMPT.txt` — единый системный промпт агента-консультанта.
@@ -51,8 +51,8 @@
 - Архитектура минимальная с явным агентным циклом: `Telegram -> handlers.py -> agent loop -> tools/LLM -> ответ в Telegram`.
 - `main.py` выполняет только инициализацию зависимостей и запуск polling.
 - `handlers.py` принимает сообщение пользователя и передает его в агент.
-- `bot/agent.py` решает: ответить сразу или вызвать инструмент (`rag`, `web_search`, `capture_lead`) и затем собрать итоговый ответ.
-- На текущем этапе `capture_lead` реализован полностью (итерация 13), а `rag` и `web_search` остаются в базовом режиме до следующих итераций.
+- `bot/agent.py` решает: ответить сразу или вызвать инструмент (`rag_search`, `web_search`, `capture_lead`) и затем собрать итоговый ответ.
+- На текущем этапе `capture_lead`, `rag_search` и `web_search` реализованы и используются агентом по необходимости.
 
 ```mermaid
 flowchart LR
@@ -63,7 +63,7 @@ flowchart LR
     AG --> WEB[web_search]
     AG --> LEAD[capture_lead]
     RAG --> CH[(ChromaDB\n./data/chroma)]
-    WEB --> TV[Tavily Search API / Brave Search API]
+    WEB --> TV[Tavily Search API]
     LEAD --> DB[(SQLite\n./data/leads.db)]
     AG --> H
 ```
@@ -79,8 +79,8 @@ flowchart LR
 ## 6. Работа с LLM
 
 - LLM используется как управляющее ядро агента и как генератор финального ответа пользователю.
-- Агент работает через `openai` SDK tool calling: модель может вызвать `rag`, `web_search`, `capture_lead`.
-- На текущем шаге `capture_lead` сохраняет лиды в SQLite; `rag` и `web_search` работают в базовом режиме до итераций 14–15.
+- Агент работает через `openai` SDK tool calling: модель может вызвать `rag_search`, `web_search`, `capture_lead`.
+- `capture_lead` сохраняет лиды в SQLite, `rag_search` ищет по PDF в ChromaDB, `web_search` выполняет внешний фактчекинг через Tavily.
 - Эмбеддинги строятся моделью `text-embedding-3-small` через тот же `LLM_BASE_URL` (OpenRouter-compatible endpoint).
 - Модель эмбеддингов задаётся в `.env` отдельной переменной (например, `EMBEDDING_MODEL`).
 - Системный промпт загружается из файла по пути из `.env` (например, `SYSTEM_PROMPT_PATH=data/SYSTEM_PROMPT.txt`).
@@ -108,7 +108,7 @@ flowchart LR
 - Обязательная база: `TELEGRAM_BOT_TOKEN`, `LLM_PROVIDER`, `LLM_BASE_URL`, `LLM_API_KEY`.
 - Для модели нужен минимум один из ключей: `LLM_TEXT_MODEL` или `LLM_MODEL` (допускается fallback на `MODEL_TEXT`).
 - Системный промпт задаётся либо через `SYSTEM_PROMPT_TEXT`, либо через `SYSTEM_PROMPT_PATH`.
-- Переменные `TAVILY_API_KEY` / `BRAVE_API_KEY` становятся обязательными после старта итерации веб-поиска.
+- Переменная `TAVILY_API_KEY` становится обязательной после старта итерации веб-поиска.
 - Для лидов и векторной базы используются локальные пути в `./data` (по умолчанию): `LEADS_DB_PATH=./data/leads.db`, `CHROMA_PATH=./data/chroma`.
 - Опциональный мониторинг трассировок: `LANGSMITH_ENABLED=false` (по умолчанию отключено).
 - Для `LLM_PROVIDER` используется значение по умолчанию `openrouter`, если явно не задано и поддержан дефолт в конфиге.
@@ -121,7 +121,7 @@ flowchart LR
 - Формат записи: время, уровень, модуль, сообщение.
 - Уровень `INFO`: запуск/остановка приложения, обработка команд, успешные ответы.
 - Уровень `WARNING`: временные сбои внешних вызовов и fallback между инструментами.
-- Уровень `ERROR`: ошибки Telegram API, LLM API, Tavily/Brave и необработанные исключения.
+- Уровень `ERROR`: ошибки Telegram API, LLM API, Tavily и необработанные исключения.
 - В логах не допускаются секреты (`TELEGRAM_BOT_TOKEN`, `LLM_API_KEY`) и полный текст пользовательских сообщений.
 - При включенном `LANGSMITH_ENABLED=true` дополнительно отправляются трассировки агентного цикла.
 
@@ -132,6 +132,6 @@ flowchart LR
 - Конфигурация в обоих режимах берётся из `.env`.
 - Для Docker используется volume `./data:/app/data`, чтобы `chroma` и `leads.db` сохранялись между перезапусками.
 - Облачный деплой (опционально): **Railway** или другой Docker-совместимый сервис.
-- Секреты (`TELEGRAM_BOT_TOKEN`, `LLM_API_KEY`, `TAVILY_API_KEY`/`BRAVE_API_KEY` и др.) задаются в переменных окружения Railway (не в репозитории).
+- Секреты (`TELEGRAM_BOT_TOKEN`, `LLM_API_KEY`, `TAVILY_API_KEY` и др.) задаются в переменных окружения Railway (не в репозитории).
 - CI/CD: при пуше в `main` Railway автоматически пересобирает и перезапускает контейнер.
 - `Procfile` или Railway-совместимый `Dockerfile` используется как точка входа при облачном деплое.

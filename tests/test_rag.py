@@ -47,6 +47,7 @@ class RagTests(unittest.TestCase):
                 langsmith_enabled=False,
                 langsmith_api_key="",
                 langsmith_project="",
+                tavily_api_key="",
             )
 
             rows = asyncio.run(
