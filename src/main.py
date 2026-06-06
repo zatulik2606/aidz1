@@ -6,6 +6,7 @@ from aiogram import Bot, Dispatcher
 
 from src.config import load_config
 from src.handlers import build_router
+from src.venv_guard import ensure_virtualenv
 
 
 def setup_logging() -> None:
@@ -17,6 +18,7 @@ def setup_logging() -> None:
 
 
 async def run() -> None:
+    ensure_virtualenv()
     setup_logging()
     config = load_config()
     bot = Bot(token=config.telegram_bot_token)

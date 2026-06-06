@@ -49,6 +49,7 @@ class AgentLoopTests(unittest.TestCase):
             run_agent(
                 history=[{"role": "user", "content": "Привет"}],
                 config=config,
+                thread_id="123:test",
             )
         )
         self.assertEqual(result, "Готово.")
@@ -110,6 +111,7 @@ class AgentLoopTests(unittest.TestCase):
             run_agent(
                 history=[{"role": "user", "content": "Проверь актуальность Python 3.12"}],
                 config=config,
+                thread_id="123:test",
             )
         )
         self.assertEqual(result, "Проверил факт и сформировал ответ.")

@@ -25,12 +25,18 @@ Keep modules focused and do not mix responsibilities:
 - `src/tools/*` — isolated tools: `rag`, `web`, `capture_lead`.
 - `src/rag/*` — PDF ingestion and vector search workflow.
 
+## Runtime Environment
+
+- Local runs and CLI entrypoints must use the project `.venv` (`.venv/bin/python`).
+- `src/venv_guard.py` enforces this at startup; do not bypass it for app entrypoints.
+- Use `make install` to create `.venv` and sync deps, `make run` / `make test` for execution.
+
 ## Project Structure
 
 Use and preserve this baseline layout:
 
 - Root: `src/`, `docs/`, `tests/`, `vision.md`, `pyproject.toml`, `Dockerfile`, `docker-compose.yml`.
-- `src/`: runtime application code (`main.py`, `config.py`, `handlers.py`, `agent.py`, `tools/`, `rag/`).
+- `src/`: runtime application code (`main.py`, `config.py`, `handlers.py`, `agent.py`, `venv_guard.py`, `tools/`, `rag/`).
 - `docs/`: product and implementation notes (`idea.md`, `tasklist.md`, and related docs).
 - `tests/`: automated tests mirroring `src/` responsibilities.
 - `data/`: runtime artifacts only (prompt file, vector DB, local sqlite/json stores); do not commit secrets.

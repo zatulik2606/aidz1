@@ -1,13 +1,20 @@
 from pathlib import Path
 
 import chromadb
+from langsmith import traceable
 from openai import AsyncOpenAI
 
 from src.config import Config
 from src.rag.indexer import COLLECTION_NAME
 
 
-async def search_company_docs(query: str, config: Config, top_k: int = 3) -> list[dict[str, str]]:
+@traceable(name="rag_search_company_docs")
+async def search_company_docs(
+    query: str,
+    config: Config,
+    top_k: int = 3,
+    thread_id: str | None = None,
+) -> list[dict[str, str]]:
     text = query.strip()
     if not text:
         return []

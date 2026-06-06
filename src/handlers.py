@@ -12,9 +12,12 @@ from src.dialog_store import (
     add_user_message,
     clear_history,
     get_history,
+    get_thread_id,
+    start_new_thread,
 )
 from src.audio_client import generate_audio_reply, _normalize_audio_format
 from src.image_client import generate_image_reply
+from src.telegram_text import sanitize_telegram_text
 
 
 logger = logging.getLogger(__name__)
@@ -50,6 +53,10 @@ def build_router(config: Config) -> Router:
 
     @router.message(CommandStart())
     async def handle_start(message: Message) -> None:
+        chat_id = message.chat.id
+        user_id = message.from_user.id if message.from_user else chat_id
+        clear_history(chat_id)
+        start_new_thread(user_id)
         await message.answer(
             "👋 Привет! Я Шустрый — старший инженер мониторинга ИТ-сети.\n\n"
             "Для анализа отправь текстом:\n"
@@ -66,14 +73,19 @@ def build_router(config: Config) -> Router:
 
     @router.message(Command("reset"))
     async def handle_reset(message: Message) -> None:
-        clear_history(message.chat.id)
+        chat_id = message.chat.id
+        user_id = message.from_user.id if message.from_user else chat_id
+        clear_history(chat_id)
+        start_new_thread(user_id)
         await message.answer("Контекст диалога очищен.")
 
     @router.message(F.text)
     async def handle_text_message(message: Message) -> None:
         chat_id = message.chat.id
+        user_id = message.from_user.id if message.from_user else chat_id
         user_text = message.text or ""
         history = get_history(chat_id)
+        thread_id = get_thread_id(user_id)
         try:
             answer = await run_agent(
                 history=[
@@ -81,15 +93,17 @@ def build_router(config: Config) -> Router:
                     {"role": "user", "content": user_text, "chat_id": chat_id},
                 ],
                 config=config,
+                thread_id=thread_id,
             )
         except Exception:
             logger.exception("LLM request failed")
             await message.answer("Сервис временно недоступен, попробуйте позже.")
             return
 
+        safe_answer = sanitize_telegram_text(answer)
         add_user_message(chat_id, user_text)
-        add_assistant_message(chat_id, answer)
-        await message.answer(answer or "Модель вернула пустой ответ.")
+        add_assistant_message(chat_id, safe_answer)
+        await message.answer(safe_answer or "Модель вернула пустой ответ.")
 
     @router.message(F.photo)
     async def handle_photo_message(message: Message) -> None:
@@ -142,7 +156,9 @@ def build_router(config: Config) -> Router:
     @router.message(F.voice)
     async def handle_voice_message(message: Message) -> None:
         chat_id = message.chat.id
+        user_id = message.from_user.id if message.from_user else chat_id
         history = get_history(chat_id)
+        thread_id = get_thread_id(user_id)
         voice = message.voice
         if voice is None:
             await message.answer("Не удалось обработать голосовое сообщение.")
@@ -176,6 +192,7 @@ def build_router(config: Config) -> Router:
                     {"role": "user", "content": voice_text, "chat_id": chat_id},
                 ],
                 config=config,
+                thread_id=thread_id,
             )
         except APIStatusError as error:
             if error.status_code == 402:
@@ -192,8 +209,11 @@ def build_router(config: Config) -> Router:
             await message.answer("Сервис временно недоступен, попробуйте позже.")
             return
 
+        safe_answer = sanitize_telegram_text(answer)
         add_user_message(chat_id, f"[voice] {transcript}".strip())
-        add_assistant_message(chat_id, answer)
-        await message.answer(answer or "Не удалось сформировать ответ по голосовому сообщению.")
+        add_assistant_message(chat_id, safe_answer)
+        await message.answer(
+            safe_answer or "Не удалось сформировать ответ по голосовому сообщению."
+        )
 
     return router

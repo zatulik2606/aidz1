@@ -17,21 +17,45 @@ Telegram-бот на базе LLM для первичного анализа а�
 
 ## Технологический стек
 
-- Python 3.12
+### Обязательные компоненты
+
+| Компонент | Назначение |
+| --- | --- |
+| **venv** (`.venv`) | Обязательное виртуальное окружение для локального запуска, тестов и CLI |
+| Python 3.12 | Основной язык проекта |
+| uv | Создание `.venv` и установка зависимостей из `uv.lock` |
+
+### Остальной стек
+
 - aiogram (Telegram Bot API, polling)
 - OpenAI Python client + OpenRouter
-- uv (управление зависимостями и запуск)
 - Docker + Docker Compose
 - Railway (облачный деплой)
 
-### uv и виртуальное окружение
+### Виртуальное окружение (обязательно)
 
-В проекте используется **uv** как единый инструмент для зависимостей и запуска. Каталог `.venv` — это локальное виртуальное окружение Python, которое `uv` создаёт и обновляет автоматически при `uv sync` или `uv run`.
+Локальный запуск и CLI-скрипты проекта работают **только** внутри каталога `.venv` в корне репозитория. При старте приложение проверяет это через `src/venv_guard.py` и завершается с подсказкой, если интерпретатор запущен вне `.venv`.
 
-- `make install` → `uv sync` — создаёт/обновляет `.venv` и ставит пакеты из `uv.lock`
-- `make run` → `uv run python -m src.main` — запускает бота внутри `.venv`
-- Отдельно `python -m venv` не нужен: `uv` полностью управляет окружением
+- `make install` — создаёт `.venv` (`uv venv`) и ставит зависимости из `uv.lock` (`uv sync`)
+- `make run` — запускает бота через `.venv/bin/python -m src.main`
+- `make rag-ingest` — индексация PDF через `.venv/bin/python`
+- `make test` — тесты через `.venv/bin/python`
 - `.venv` не коммитится в git (см. `.gitignore`), у каждого разработчика оно локальное
+
+Ручной запуск (без `make`):
+
+```bash
+uv venv --python 3.12 .venv
+uv sync
+.venv/bin/python -m src.main
+```
+
+Активация окружения в текущей shell-сессии:
+
+```bash
+source .venv/bin/activate
+python -m src.main
+```
 
 ## Установка и запуск
 
@@ -53,8 +77,20 @@ cp .env.example .env
 ### 2) Локальный запуск (без Docker)
 
 ```bash
-make install
-make run
+make install   # создать .venv и установить зависимости
+make run       # запуск бота в .venv
+```
+
+Индексация PDF для RAG:
+
+```bash
+make rag-ingest
+```
+
+Тесты:
+
+```bash
+make test
 ```
 
 ### 3) Локальный запуск в Docker

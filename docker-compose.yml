@@ -5,4 +5,4 @@ services:
       - .env
     volumes:
       - ./data:/app/data
-    command: uv run python -m src.main
+    command: .venv/bin/python -m src.main

@@ -20,7 +20,7 @@ def _perform_tavily_request(payload: dict[str, str | int]) -> dict:
     return json.loads(body)
 
 
-async def web_search(query: str) -> str:
+async def web_search(query: str, thread_id: str | None = None) -> str:
     text = query.strip()
     if not text:
         return "Веб-поиск: запрос пустой."

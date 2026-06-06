@@ -9,4 +9,4 @@ RUN uv sync --frozen
 
 COPY . .
 
-CMD ["uv", "run", "python", "-m", "src.main"]
+CMD [".venv/bin/python", "-m", "src.main"]

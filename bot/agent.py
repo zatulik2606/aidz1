@@ -72,6 +72,15 @@ TOOL_HANDLERS: dict[str, ToolCallable] = {
 }
 
 
+def _langsmith_extra(thread_id: str | None) -> dict[str, Any]:
+    if not thread_id:
+        return {}
+    return {
+        "metadata": {"thread_id": thread_id},
+        "tags": [f"thread_id:{thread_id}"],
+    }
+
+
 def _normalize_model_content(content: Any) -> str:
     if isinstance(content, str):
         return content.strip()
@@ -98,10 +107,14 @@ def _build_messages(history: list[dict[str, Any]], config: Config) -> list[dict[
     ]
 
 
-async def _execute_tool(tool_call: Any) -> dict[str, Any]:
-    tool_name = tool_call.function.name
-    raw_arguments = tool_call.function.arguments or "{}"
-    tool_call_id = tool_call.id
+async def _execute_tool_impl(
+    tool_name: str,
+    raw_arguments: str,
+    tool_call_id: str,
+    leads_db_path: str,
+    source_chat_id: int | None,
+    thread_id: str | None = None,
+) -> dict[str, Any]:
 
     if tool_name not in TOOL_HANDLERS:
         logger.warning("Unknown tool requested: %s", tool_name)
@@ -113,8 +126,10 @@ async def _execute_tool(tool_call: Any) -> dict[str, Any]:
             logger.warning("Tool arguments are not valid JSON for %s", tool_name)
             arguments = {}
         if tool_name == "capture_lead":
-            arguments.setdefault("leads_db_path", tool_call.leads_db_path)
-            arguments.setdefault("source_chat_id", tool_call.source_chat_id)
+            arguments.setdefault("leads_db_path", leads_db_path)
+            arguments.setdefault("source_chat_id", source_chat_id)
+        if tool_name in {"rag_search", "web_search"}:
+            arguments.setdefault("thread_id", thread_id)
         try:
             result_text = await TOOL_HANDLERS[tool_name](**arguments)
         except Exception:
@@ -129,12 +144,68 @@ async def _execute_tool(tool_call: Any) -> dict[str, Any]:
     }
 
 
+@traceable(name="agent_tool_step")
+async def _execute_tool_traceable(
+    tool_name: str,
+    raw_arguments: str,
+    tool_call_id: str,
+    leads_db_path: str,
+    source_chat_id: int | None,
+    thread_id: str | None = None,
+) -> dict[str, Any]:
+    return await _execute_tool_impl(
+        tool_name=tool_name,
+        raw_arguments=raw_arguments,
+        tool_call_id=tool_call_id,
+        leads_db_path=leads_db_path,
+        source_chat_id=source_chat_id,
+        thread_id=thread_id,
+    )
+
+
+async def _execute_tool(
+    tool_call: Any,
+    config: Config,
+    source_chat_id: int | None,
+    thread_id: str | None,
+) -> dict[str, Any]:
+    tool_name = tool_call.function.name
+    raw_arguments = tool_call.function.arguments or "{}"
+    tool_call_id = tool_call.id
+    if config.langsmith_enabled:
+        return await _execute_tool_traceable(
+            tool_name=tool_name,
+            raw_arguments=raw_arguments,
+            tool_call_id=tool_call_id,
+            leads_db_path=config.leads_db_path,
+            source_chat_id=source_chat_id,
+            thread_id=thread_id,
+            langsmith_extra=_langsmith_extra(thread_id),
+        )
+    return await _execute_tool_impl(
+        tool_name=tool_name,
+        raw_arguments=raw_arguments,
+        tool_call_id=tool_call_id,
+        leads_db_path=config.leads_db_path,
+        source_chat_id=source_chat_id,
+        thread_id=thread_id,
+    )
+
+
 @traceable(name="agent_loop")
-async def _run_agent_traceable(history: list[dict[str, Any]], config: Config) -> str:
-    return await _run_agent_impl(history=history, config=config)
+async def _run_agent_traceable(
+    history: list[dict[str, Any]],
+    config: Config,
+    thread_id: str | None = None,
+) -> str:
+    return await _run_agent_impl(history=history, config=config, thread_id=thread_id)
 
 
-async def _run_agent_impl(history: list[dict[str, Any]], config: Config) -> str:
+async def _run_agent_impl(
+    history: list[dict[str, Any]],
+    config: Config,
+    thread_id: str | None = None,
+) -> str:
     base_client = AsyncOpenAI(
         api_key=config.llm_api_key,
         base_url=config.llm_base_url,
@@ -175,8 +246,7 @@ async def _run_agent_impl(history: list[dict[str, Any]], config: Config) -> str:
         )
 
         for tool_call in tool_calls:
-            tool_call.leads_db_path = config.leads_db_path
-            tool_call.source_chat_id = next(
+            source_chat_id = next(
                 (
                     msg.get("chat_id")
                     for msg in reversed(messages)
@@ -186,7 +256,12 @@ async def _run_agent_impl(history: list[dict[str, Any]], config: Config) -> str:
                 ),
                 None,
             )
-            tool_message = await _execute_tool(tool_call)
+            tool_message = await _execute_tool(
+                tool_call=tool_call,
+                config=config,
+                source_chat_id=source_chat_id,
+                thread_id=thread_id,
+            )
             messages.append(tool_message)
 
         step += 1
@@ -194,7 +269,16 @@ async def _run_agent_impl(history: list[dict[str, Any]], config: Config) -> str:
     return "Не удалось завершить обработку запроса, попробуйте еще раз."
 
 
-async def run_agent(history: list[dict[str, Any]], config: Config) -> str:
+async def run_agent(
+    history: list[dict[str, Any]],
+    config: Config,
+    thread_id: str | None = None,
+) -> str:
     if config.langsmith_enabled:
-        return await _run_agent_traceable(history=history, config=config)
-    return await _run_agent_impl(history=history, config=config)
+        return await _run_agent_traceable(
+            history=history,
+            config=config,
+            thread_id=thread_id,
+            langsmith_extra=_langsmith_extra(thread_id),
+        )
+    return await _run_agent_impl(history=history, config=config, thread_id=thread_id)

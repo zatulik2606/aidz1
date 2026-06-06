@@ -1,15 +1,25 @@
-.PHONY: install run run-local rag-ingest docker-build run-docker run-docker-bg docker-logs docker-down
+VENV := .venv
+PYTHON := $(VENV)/bin/python
+UV := uv
 
-install:
-	uv sync
+.PHONY: venv install run run-local rag-ingest test docker-build run-docker run-docker-bg docker-logs docker-down
 
-run:
-	uv run python -m src.main
+venv:
+	@test -d $(VENV) || $(UV) venv --python 3.12 $(VENV)
+
+install: venv
+	$(UV) sync
+
+run: venv
+	$(PYTHON) -m src.main
 
 run-local: run
 
-rag-ingest:
-	uv run python -m src.rag.index_pdf
+rag-ingest: venv
+	$(PYTHON) -m src.rag.index_pdf
+
+test: venv
+	$(PYTHON) -m unittest discover -s tests
 
 docker-build:
 	docker compose build

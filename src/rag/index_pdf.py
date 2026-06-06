@@ -2,6 +2,7 @@ import asyncio
 
 from src.config import load_config
 from src.rag.indexer import ingest_company_pdfs
+from src.venv_guard import ensure_virtualenv
 
 
 async def _main() -> None:
@@ -11,6 +12,7 @@ async def _main() -> None:
 
 
 def main() -> None:
+    ensure_virtualenv()
     asyncio.run(_main())
 
 
