@@ -24,12 +24,12 @@ Telegram-бот на базе LLM для первичного анализа а�
 | **venv** (`.venv`) | Обязательное виртуальное окружение для локального запуска, тестов и CLI |
 | Python 3.12 | Основной язык проекта |
 | uv | Создание `.venv` и установка зависимостей из `uv.lock` |
+| aiogram | Telegram Bot API, polling |
+| OpenAI Python client + OpenRouter | LLM и tool calling |
+| Docker + Docker Compose | Контейнеризация и локальный запуск в Docker |
 
-### Остальной стек
+### Опциональный стек
 
-- aiogram (Telegram Bot API, polling)
-- OpenAI Python client + OpenRouter
-- Docker + Docker Compose
 - Railway (облачный деплой)
 
 ### Виртуальное окружение (обязательно)
